@@ -155,9 +155,19 @@ func (c *Context) Path(points []image.Point) {
 	}
 }
 
-// Parabola draws a parabola arc with the specified coefficients a, b and c.
+// Parabola draws a parabola with the specified coefficients a, b and c.
 func (c *Context) Parabola(a1, b1, c1 float64) {
 	for x := c.rgba.Bounds().Min.X; x < c.rgba.Bounds().Max.X; x++ {
+		y := int(a1*math.Pow(float64(x), 2) + b1*float64(x) + c1 + 0.5)
+		if image.Rect(x, y, x, y).In(c.rgba.Bounds()) {
+			c.Dot(x, y)
+		}
+	}
+}
+
+// ParabolaArc draws the arc of parabola between x1 and x2 with the specified coefficients a, b and c.
+func (c *Context) ParabolaArc(a1, b1, c1 float64, x1, x2 int) {
+	for x := x1; x < x2; x++ {
 		y := int(a1*math.Pow(float64(x), 2) + b1*float64(x) + c1 + 0.5)
 		if image.Rect(x, y, x, y).In(c.rgba.Bounds()) {
 			c.Dot(x, y)
