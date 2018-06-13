@@ -90,14 +90,16 @@ func (c *Context) Line(x0, y0, x1, y1 int) {
 
 	if swap0and1 {
 		x0, x1 = x1, x0
-	}
-
-	if swapXandY {
-		x0, y0, x1, y1 = y0, x0, y1, x1
+		y0, y1 = y1, y0
 	}
 
 	dx := x1 - x0
 	dy := y1 - y0
+
+	if swapXandY {
+		dx, dy = dy, dx
+		x0, y0, x1, y1 = y0, x0, y1, x1
+	}
 
 	yi := 1
 	if dy < 0 {
