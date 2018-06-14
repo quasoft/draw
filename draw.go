@@ -1,6 +1,7 @@
 package draw
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -69,6 +70,11 @@ func (c *Context) SetTextColor(clr color.Color) {
 // Dot draw a single dot at x,y coordinates.
 func (c *Context) Dot(x, y int) {
 	c.rgba.Set(x, y, c.penColor)
+}
+
+// FillPixel fills the pixel at x,y with the current fill color.
+func (c *Context) FillPixel(x, y int) {
+	c.rgba.Set(x, y, c.fillColor)
 }
 
 // Dots draws a sequence of dots.
@@ -154,6 +160,98 @@ func (c *Context) Path(points []image.Point) {
 			c.Line(last.X, last.Y, point.X, point.Y)
 		}
 		last = point
+	}
+}
+
+// IsInPolygon tests if the point at X and Y lies inside the polygon defined by the given points.
+func (c *Context) IsInPolygon(x, y int, points []image.Point) bool {
+	// Custom point type with floating point coordinate values
+	type floatingPoint struct {
+		X, Y float64
+	}
+
+	ln := len(points)
+
+	// Convert points and X, Y to floats
+	p := make([]floatingPoint, ln)
+	for i, pnt := range points {
+		p[i].X = float64(pnt.X)
+		p[i].Y = float64(pnt.Y)
+	}
+
+	fX := float64(x)
+	fY := float64(y)
+
+	// Adapted from C implementation by W. Randolph Franklin, published at https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+	odd := false
+	for i, j := 0, ln-1; i < ln; i, j = i+1, i {
+		iX, iY := p[i].X, p[i].Y
+		jX, jY := p[j].X, p[j].Y
+		if (iY > fY) != (jY > fY) && (fX < (jX-iX)*(fY-iY)/(jY-iY)+iX) {
+			odd = !odd
+		}
+	}
+
+	return odd
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// Polygon outlines and fills a polygon defined by the given points.
+func (c *Context) Polygon(points []image.Point) {
+	// Remove duplicate points
+	p := make([]image.Point, 0)
+	exists := make(map[string]bool)
+	for _, pnt := range points {
+		id := fmt.Sprintf("%d,%d", pnt.X, pnt.Y)
+		if !exists[id] {
+			exists[id] = true
+			p = append(p, pnt)
+		}
+	}
+
+	// Determine the bounding box of the polygon
+	img := c.rgba.Bounds()
+	minX, maxX := img.Max.X, img.Min.X
+	minY, maxY := img.Max.Y, img.Min.Y
+	for i := 0; i < len(p); i++ {
+		minX = minInt(p[i].X, minX)
+		maxX = minInt(p[i].X, maxX)
+		minY = minInt(p[i].Y, minY)
+		maxY = minInt(p[i].Y, maxY)
+	}
+	// Make sure X and Y are inside the bounds of the image
+	minX = minInt(minX, img.Min.X)
+	minY = minInt(minY, img.Min.Y)
+	maxX = maxInt(maxX, img.Max.X)
+	maxY = maxInt(maxY, img.Max.Y)
+
+	// Draw a path with outline color
+	if c.penColor != color.Transparent {
+		c.Path(p)
+	}
+
+	// Fill pixels that lie inside the polygon
+	if c.fillColor != color.Transparent {
+		for y := minY; y < maxY; y++ {
+			for x := minX; x < maxX; x++ {
+				if c.IsInPolygon(x, y, p) {
+					c.FillPixel(x, y)
+				}
+			}
+		}
 	}
 }
 
