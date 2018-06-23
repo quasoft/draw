@@ -267,6 +267,9 @@ func (c *Context) Parabola(a1, b1, c1 float64) {
 
 // ParabolaArc draws the arc of parabola between x1 and x2 with the specified coefficients a, b and c.
 func (c *Context) ParabolaArc(a1, b1, c1 float64, x1, x2 int) {
+	x1 = maxInt(x1, c.rgba.Bounds().Min.X)
+	x2 = minInt(x2, c.rgba.Bounds().Max.X)
+
 	for x := x1; x < x2; x++ {
 		y := int(a1*math.Pow(float64(x), 2) + b1*float64(x) + c1 + 0.5)
 		if image.Rect(x, y, x, y).In(c.rgba.Bounds()) {
